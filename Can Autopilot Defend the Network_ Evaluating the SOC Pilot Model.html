@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Can Autopilot Defend the Network? Evaluating the SOC Pilot Model</title>
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef8fd;--surface:#fff;--ink:#12302a;--muted:#4c6b72;--em:#0b7a5a;--em-dark:#075a43;--sky:#bfe3f5;--sky-soft:#dff1fa;--line:#cfe6ef;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1f1a;--surface:#11302a;--ink:#e6f6f1;--muted:#9fc6c9;--em:#3fd1a1;--em-dark:#7fe6c3;--sky:#1d4a5c;--sky-soft:#173d4a;--line:#1f4a43}}
+:root[data-theme="dark"]{--bg:#0b1f1a;--surface:#11302a;--ink:#e6f6f1;--muted:#9fc6c9;--em:#3fd1a1;--em-dark:#7fe6c3;--sky:#1d4a5c;--sky-soft:#173d4a;--line:#1f4a43}
+html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.8 Merriweather,Georgia,serif}
+.hero{background:linear-gradient(120deg,#075a43,#0b7a5a 55%,#5cb8d9);color:#fff;padding:76px 20px 90px;text-align:center;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:44px;background:var(--bg);clip-path:ellipse(60% 100% at 50% 100%)}
+.tag{display:inline-block;background:var(--sky);color:#075a43;padding:5px 16px;border-radius:99px;font:600 12px/1.6 Poppins,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase}
+.hero h1{font:700 clamp(28px,5vw,44px)/1.25 Poppins,system-ui,sans-serif;max-width:820px;margin:20px auto 14px}
+.hero p{margin:0;opacity:.92;font:15px Poppins,system-ui,sans-serif}
+main{max-width:740px;margin:-10px auto 0;padding:0 20px 20px}
+article{background:var(--surface);border:1px solid var(--line);border-top:6px solid var(--em);border-radius:18px;padding:14px 34px 30px;box-shadow:0 10px 30px rgba(11,122,90,.08)}
+h2{font:600 24px/1.35 Poppins,system-ui,sans-serif;color:var(--em-dark);margin:36px 0 10px;padding-bottom:8px;border-bottom:3px solid var(--sky)}
+p{margin:0 0 16px}
+.lead{font-size:20px;color:var(--muted)}
+.pull{background:var(--sky-soft);border-left:5px solid var(--em);border-radius:0 14px 14px 0;padding:16px 22px;margin:20px 0;font-style:italic}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}
+.box{border-radius:14px;padding:16px 20px;font-size:16px;line-height:1.65}
+.box h3{margin:0 0 6px;font:600 16px Poppins,system-ui,sans-serif}
+.box.go{background:var(--sky-soft);border:1.5px solid var(--em)}
+.box.stop{background:var(--surface);border:1.5px dashed var(--em)}
+.box ul{margin:0;padding-left:18px}.box li::marker{color:var(--em)}
+.refs p{font-size:15px;color:var(--muted);padding-left:28px;text-indent:-28px}
+footer{text-align:center;color:var(--muted);font:14px Poppins,system-ui,sans-serif;padding:24px 20px 40px}
+@media(max-width:600px){article{padding:6px 20px 22px}body{font-size:17px}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="hero">
+<span class="tag">Security Operations · Agentic AI</span>
+<h1>Can Autopilot Defend the Network? Evaluating the “SOC Pilot” Model</h1>
+<p>October 18, 2026 · 9 min read</p>
+</header>
+<main>
+<article>
+
+<h2>Introduction</h2>
+<p class="lead">Passenger jets are flown largely by machines, yet few people would board one with an empty cockpit. Could security operations strike a similar deal?</p>
+<p>In his IBM piece on agentic AI, John Velisaris (2025) proposes that cyber threat management should go through the same shift that airlines underwent decades ago. Software would take care of ordinary work, while human analysts would become “SOC pilots” who decide when to get involved, particularly when a brand-new danger such as a zero-day exploit shows up. He adds a point that is easy to overlook: automation is only as good as the context it has. Before an AI agent can pick a response to an alert, it must know whether the device involved is a vital server or a routine workstation.</p>
+<p>In this post I weigh whether that vision is practical and ethical. In my view, it is practical for a growing portion of repetitive work, but it is responsible only when an organization can show that the information feeding its agents is reliable, and when people retain both the authority and the know-how to take over.</p>
+
+<h2>The Airliner Comparison and Its Limits</h2>
+<p>Velisaris (2025) observes that automation in security works best inside closed environments. Endpoint detection and response (EDR) products, for example, can respond confidently because the agent and its console already know every relevant detail. Outside such environments, where a SIEM feeds SOAR playbooks, automation needs a level of certainty that the playbook cannot produce on its own. A playbook might isolate a machine that is not a server and is behaving like known malware, yet it cannot start until somebody confirms what the machine is. Historically, analysts have filled that gap by hopping between tools and gathering details by hand.</p>
+<p>The alternative he describes is a team of cooperating agents. An orchestrating agent notices that context is lacking, asks specialized agents (covering vulnerabilities, configuration records, and endpoint data) to fetch it, weighs what comes back, and then chooses how to respond. This seems plausible to me because it hands the tedious fact-finding to machines while leaving the final judgment alone.</p>
+<p>Still, the comparison to flight has weaknesses. Aircraft operate under steady physical laws, with certified equipment and rules that do not react to the pilot. A SOC, by contrast, faces human adversaries who study defenses and purposely seek the situations a machine has never encountered. Velisaris himself admits it remains uncertain whether AI will really let analysts move into the pilot’s seat. I therefore treat the model as a heading to steer toward, not a finished blueprint.</p>
+
+<h2>Where AI Can Safely Act Alone</h2>
+<p>Independent action makes the most sense when the step can be undone, has a narrow scope, follows well-understood rules, and rests on dependable context. A number of everyday SOC duties fit that description.</p>
+<div class="grid">
+<div class="box go"><h3>Strong candidates for autonomy</h3><ul>
+<li>Adding asset, vulnerability, and threat details to alerts</li>
+<li>Dismissing obvious false alarms and duplicates</li>
+<li>Grouping related alerts into a single case</li>
+<li>Isolating a verified low-value workstation</li>
+<li>Ending a session or blocking a known malicious indicator</li></ul></div>
+<div class="box stop"><h3>Why these are safe</h3><ul>
+<li>The steps are simple to reverse</li>
+<li>Damage stays limited to one low-criticality asset</li>
+<li>Rules of engagement already exist</li>
+<li>Results can be recorded and reviewed afterward</li></ul></div>
+</div>
+<p>These duties also line up with the difficulties Velisaris (2025) lists at the start of his article, such as constant noise, shallow context during investigations, and alert fatigue. Taking that load off people is a genuine gain, because exhausted analysts make errors as well. Allowing agents to absorb the repetitive volume may well be the more responsible choice than asking humans to skim thousands of trivial alerts.</p>
+
+<h2>Where Human Judgment Has to Stay</h2>
+<p>People should keep control whenever a step is expensive, difficult to reverse, or reliant on facts the agent cannot observe. Pulling a production server offline, locking a senior leader’s account, cutting a network segment that supports public services, or informing regulators all bring business, legal, and safety effects that go beyond technology. An agent may suggest such moves, but a human should own the call.</p>
+<p>The zero-day scenario in the article illustrates this well. A novel attack has no playbook, no history, and little data to learn from. Systems that rely on patterns are weakest precisely when the pattern is unfamiliar. Human analysts contribute imagination, healthy doubt, and an awareness of what the organization is trying to protect, qualities a model cannot dependably copy.</p>
+<p>Accountability is the second reason. Any system that acts on its own still needs a person who can answer for its actions. “The agent decided” will not satisfy an auditor, a regulator, or a customer.</p>
+<div class="pull">Autonomy is not an on/off switch. It is a dial, and it should be set for each action based on its impact, how reversible it is, and how much the underlying context can be trusted.</div>
+
+<h2>When Asset Information Is Missing or Wrong</h2>
+<p>Here lies the soft spot of the whole concept. Velisaris (2025) shows that an agent’s reaction hinges on knowing what an asset is. When that knowledge is absent, the agent can try to collect it. When it is mistaken, the agent generally has no way to tell, and it will proceed with confidence.</p>
+<p>The ways this can go wrong are easy to picture. If an important database server is labeled a workstation, an automated playbook might isolate it and trigger an outage. If a sensitive laptop is labeled low value, a genuine intrusion could be dismissed as routine. If an asset is absent from the inventory altogether, no agent will ever ask about it, which hands attackers a blind spot. Even the example in the article, where an agent decides a device is a workstation from its hostname and network position, is an educated guess, and guesses can fail when naming habits drift or networks are redesigned.</p>
+<p>An autonomous SOC raises the stakes of asset management. Inventory accuracy stops being a housekeeping chore and becomes a direct input to automated decisions.</p>
+<p>Responsible designs therefore need safeguards: a confidence level below which the agent must consult a person, a requirement that actions on assets marked critical always need approval, comparisons across independent sources such as the CMDB, EDR, and network data, routine reconciliation of the inventory, and full logs of which context the agent relied upon. Context should be monitored continuously, not validated once. If the data cannot be trusted, the degree of autonomy should shrink accordingly.</p>
+
+<h2>Is the SOC Pilot Model Practical and Responsible?</h2>
+<p>Practical: yes, for routine investigation and low-risk response, and more so as agents get better at collecting their own context. Practical as a SOC with “minimal human involvement” against every kind of threat: not yet, and Velisaris (2025) openly states that the full shift has not happened.</p>
+<p>Responsible: only under conditions. The model is sound when autonomy is limited by risk, context is checked instead of assumed, actions are logged and reversible where possible, and a named person remains answerable. It turns irresponsible when “minimal human involvement” slides into no human understanding. Aviation offers a warning here too: pilots who seldom fly by hand can lose the abilities they need during a rare emergency. A SOC that automates its routine should intentionally keep analysts sharp through drills, simulations, and case reviews.</p>
+
+<h2>Becoming a SOC Pilot Rather Than Being Replaced by One</h2>
+<p>If analysts are to occupy the pilot’s chair, the job moves from handling alerts to supervising systems and tackling the unknown. Thinking about that shift, these are the abilities I would want to develop:</p>
+<div class="grid">
+<div class="box go"><h3>Technical depth</h3><ul>
+<li>Fundamentals of networks, operating systems, and cloud</li>
+<li>Threat hunting and incident response</li>
+<li>Reading logs and attacker behavior, not only dashboards</li></ul></div>
+<div class="box go"><h3>Judgment and oversight</h3><ul>
+<li>Critically assessing AI output and noticing flawed context</li>
+<li>Making risk-based decisions under uncertainty</li>
+<li>Knowing AI’s limits, biases, and governance needs</li></ul></div>
+<div class="box stop"><h3>Asset and business awareness</h3><ul>
+<li>Inventories, classification, and ownership of assets</li>
+<li>Knowing which systems the mission depends on</li></ul></div>
+<div class="box stop"><h3>Communication and ethics</h3><ul>
+<li>Explaining decisions to managers and auditors</li>
+<li>Accountability, documentation, and composure under pressure</li></ul></div>
+</div>
+<p>The shared theme is that machines will keep improving at speed and scale, while people stay vital for context, skepticism, and responsibility. The analysts most exposed are those whose job is merely shuttling data between tools, the very swivel-chair work agents are designed to take over. Those who learn to challenge the agent, confirm its context, and act decisively when the pattern breaks will be the ones flying the plane.</p>
+
+<h2>Conclusion</h2>
+<p>The SOC pilot idea is a sensible vision with one honest dependency: it works only as well as the context beneath it. Agentic AI can strip much of the noise out of security operations, but it cannot make up for an inaccurate asset inventory or take over human accountability for weighty decisions. Organizations should adopt autonomy step by step, measure the results, and keep their people skilled. Analysts, in turn, should aim to understand these systems well enough to know when to trust them and when to take the controls.</p>
+
+<h2>References</h2>
+<div class="refs">
+<p>Velisaris, J. (2025, May 8). <em>How agentic AI enables an autonomous SOC with minimal human involvement</em>. IBM. https://www.ibm.com/think/insights/agentic-ai-enables-autonomous-soc</p>
+</div>
+</article>
+</main>
+<footer>Security Operations Reflection · Evaluating the SOC Pilot Model</footer>
+</body>
+</html>
